@@ -151,12 +151,7 @@ void resetTimer(){
 }
 
 void clearLine(int lineIDX){
-  lcd.setCursor(0,lineIDX);
-  for(int i=0;i<CHARS_PER_LINE;i++){
-    lcd.print(" ");
-  }
-  lcd.setCursor(0,lineIDX);
-
+  clearLine(lineIDX,0);
 }
 
 void clearLine(int lineIDX, int charIDX){
