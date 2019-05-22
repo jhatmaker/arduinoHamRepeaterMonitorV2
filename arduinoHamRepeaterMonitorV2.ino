@@ -1,14 +1,67 @@
 /*
  * Ham_RepeaterMonitor
- *   This version reduces the flicker of the labels by only updating the changing values. 
+ * 
  * 
  * https://www.arduino.cc/en/Reference/LiquidCrystalConstructor
+ * Datasheet for LCD https://cdn-shop.adafruit.com/datasheets/WH2004A-CFH-JT%23.pdf
  * 
  * 
  * The Circuit:
- *  TBD 
- *
+ * 
  * LCD RS pin to digital pin 
+ * LCD 
+ * PIN (CTRL) -> connection PIN (LABEL)
+ *  1 (Vss Ground) -> Arduino P4 (GND)
+ *  2 (Vdd 5v PS) ->  Arduino P3 (5v)
+ *  3 (VO Contrast Adjust)  -> center pin of pot
+ *  4 (RS Data/Instruction select signal) -> Arduino Digital 7
+ *  5 (R/W ) -> ground
+ *  6 (E Enable)  -> Arduino Digital 8
+ *  7 (DB0 Databus) -> X 
+ *  8 (DB1 Databus) -> X
+ *  9 (DB2 Databus) -> X
+ * 10 (DB3 Databus) -> X
+ * 11 (DB4 Databus) -> Arduino Digital 9
+ * 12 (DB5 Databus) -> Arduino Digital 10
+ * 13 (DB6 Databus) -> Arduino Digital 11
+ * 14 (DB7 Databus) -> Arduino Digital 12
+ * 15 (A PS for B/L+) -> 5v Arduino P3 (5v)
+ * 16 (R PS for B/L RED) -> Arduino Digital 3
+ * 17 (G PS for B/L GREEN) -> Arduino Digital 5
+ * 18 (B PS for B/L BLUE) -> Arduino Digital 6
+ *  
+ *  
+ *  Arduino View/Pinout
+ *  Power P1 (Reset) -> X
+ *  Power P2 (3.3v)  -> X
+ *  Power P3 (5v) -> To Display
+ *  Power P4 (GND) -> To Display
+ *  Power P5 (GND) -> X
+ *  Power P6 (Vin) -> X
+ *  
+ *  Analog A0 -> X
+ *  Analog A1 -> X
+ *  Analog A2 -> X
+ *  Analog A3 -> FWD voltage reading
+ *  Analog A4 -> X
+ *  Analog A5 -> REV voltage reading
+ *  
+ *  AREF -> X
+ *  Ground (GND) -> to control relay -
+ *  Digital D13 -> to control relay +
+ *  Digital D12 -> Display (DB7) 14 
+ *  Digital D11 -> Display (DB6) 13
+ *  Digital D10 -> Display (DB5) 12
+ *  Digital D9 ->  Display (DB4) 11
+ *  Digital 08 -> Display (E) PIN 6
+ *  Digital 07 -> Display (RS) PIN 4
+ *  Digital 06 -> Display (B) BLUE PIN 18
+ *  Digital 05 -> Display (G) GREEN PIN 17
+ *  Digital 04 -> X
+ *  Digital 03 -> Display (R) RED PIN 16
+ *  Digital 02 -> X
+ *  Digital 01 -> X
+ *  Digital 00 -> X
  */
 
 
@@ -32,8 +85,8 @@
 LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
    String titleLabel = "Repeater Watchdog v2";
    String repeaterStatusLabel = "Status: ";
-   String fwdPowerLabel = "Last FWD Power: ";
-   String revPowerLabel = "Last REV Power: ";
+   String fwdPowerLabel = "FWD Power: ";
+   String revPowerLabel = "REV Power: ";
    
    int brightness = 255;
    int relayStatus = 0;
@@ -48,9 +101,11 @@ LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
    int resetTime = 10;  // I can not remember what this was for
    int fwdReading = 0;
    int revReading = 0;
-   int voltageThreshold = 400;
+   int voltageThreshold = 30;
    int inTransmit = 0 ; 
    int powerCycleDelay = 5000; // wait for 5 seconds
+   int loopCount = 0;
+   int displayCount = 100;
 
 
 
@@ -93,18 +148,25 @@ void powerCycle(){
 
 
 void loop() {
+  loopCount++;
   fwdReading = analogRead(analogPinFWD);
   revReading = analogRead(analogPinREV);
   Serial.print((String) "FWD: " + fwdReading + " / REV: " + revReading);
   Serial.print((String) " / inTX: " + inTransmit + " / StartTime: " + startTime);
   Serial.println((String) " Timer: " + countDownSeconds);
   Serial.flush();
+  if(loopCount = displayCount){
+  loopCount = 0;
   clearLine(2,fwdPowerLabel.length());
-  lcd.print((String)fwdReading);
+  //lcd.print((String)fwdReading);
+  lcd.print((String)toWatts(fwdReading));
+  
   //lcd.print((String)"Last FWD Power: " + fwdReading );
   clearLine(3,revPowerLabel.length());
   lcd.print((String)revReading);
   //lcd.print((String)"Last REV Power: " + revReading );
+
+  }
   if(fwdReading > voltageThreshold) {
     if(startTime <= 0){
             startTime=millis();
@@ -151,7 +213,12 @@ void resetTimer(){
 }
 
 void clearLine(int lineIDX){
-  clearLine(lineIDX,0);
+  lcd.setCursor(0,lineIDX);
+  for(int i=0;i<CHARS_PER_LINE;i++){
+    lcd.print(" ");
+  }
+  lcd.setCursor(0,lineIDX);
+
 }
 
 void clearLine(int lineIDX, int charIDX){
@@ -161,6 +228,12 @@ void clearLine(int lineIDX, int charIDX){
   }
   lcd.setCursor(charIDX,lineIDX);
   
+}
+
+double toWatts(int a){
+  if(a>0)
+    return pow(10,a/66.0);
+  return 0.00;
 }
 
 void setBacklight(uint8_t r, uint8_t g, uint8_t b) {
@@ -183,3 +256,5 @@ void setBacklight(uint8_t r, uint8_t g, uint8_t b) {
   analogWrite(GREENLITE, g);
   analogWrite(BLUELITE, b);
 }
+
+
