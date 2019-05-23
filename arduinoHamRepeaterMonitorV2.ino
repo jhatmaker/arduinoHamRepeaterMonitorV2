@@ -48,7 +48,7 @@
  *  
  *  AREF -> X
  *  Ground (GND) -> to control relay -
- *  Digital D13 -> to control relay +
+ *  Digital D13 -> X
  *  Digital D12 -> Display (DB7) 14 
  *  Digital D11 -> Display (DB6) 13
  *  Digital D10 -> Display (DB5) 12
@@ -59,7 +59,7 @@
  *  Digital 05 -> Display (G) GREEN PIN 17
  *  Digital 04 -> X
  *  Digital 03 -> Display (R) RED PIN 16
- *  Digital 02 -> X
+ *  Digital 02 -> to control relay +
  *  Digital 01 -> X
  *  Digital 00 -> X
  */
@@ -77,7 +77,7 @@
 #define REDLITE 3
 #define GREENLITE 5
 #define BLUELITE 6
-#define RELAYPIN_OUT 13
+#define RELAYPIN_OUT 2
 
 
 // initialize the library with the numbers of the interface pins
