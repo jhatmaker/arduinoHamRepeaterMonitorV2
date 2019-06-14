@@ -3,7 +3,6 @@
  * 
  * 
  * https://www.arduino.cc/en/Reference/LiquidCrystalConstructor
- * Datasheet for LCD https://cdn-shop.adafruit.com/datasheets/WH2004A-CFH-JT%23.pdf
  * 
  * 
  * The Circuit:
@@ -72,6 +71,7 @@
 #define CHARS_PER_LINE 20
 #define LCD_LINES 4
 
+
 #define FWDPOWER_IN A3
 #define REVPOWER_IN A5
 #define REDLITE 3
@@ -79,22 +79,54 @@
 #define BLUELITE 6
 #define RELAYPIN_OUT 2
 
+#if LCD_LINES == 2 
+#define LABEL_LINE1 "Status: "
+#define PWRHIGHMSG "Trigger HIGH "
+#define PWRLOWMSG "Trigger LOW "
+#define MAXFWDLEN 6
+#define MAXREVLEN 6
+String repeaterStatusLabel = LABEL_LINE1;
+String fwdPowerLabel = "F "
+String revPowerLabel = "R "
+
+  
+#elif LCD_LINES == 4
+#define LABEL_LINE1 "Repeater Watchdog v2"
+#define LABEL_LINE2 "Status: "
+#define PWRHIGHMSG "Trigger HIGH "
+#define PWRLOWMSG "Trigger LOW "
+
+//String titleLabel = "Repeater Watchdog v2";
+String titleLabel = LABEL_LINE1;
+String repeaterStatusLabel = LABEL_LINE2;
+String fwdPowerLabel = "FWD Power: ";
+String revPowerLabel = "REV Power: ";
+
+      
+
+#else
+
+#endif
+
+void displayStatus( String );
+void displayPower(String , String );
+void displayPowerCycle(String);
+
 
 // initialize the library with the numbers of the interface pins
 // rs, enable, d,d,d,d)
 LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
-   String titleLabel = "Repeater Watchdog v2";
-   String repeaterStatusLabel = "Status: ";
-   String fwdPowerLabel = "FWD Power: ";
-   String revPowerLabel = "REV Power: ";
-   
+
    int brightness = 255;
    int relayStatus = 0;
    int analogPinFWD = FWDPOWER_IN;
    int analogPinREV = REVPOWER_IN;
    int digitalPinPowerCtrl = RELAYPIN_OUT; 
    int refreshTime = 100; // MilliSeconds
-   unsigned long maxSeconds = 16;
+   // Testing value 
+   unsigned long maxSeconds = 5;
+   // Real Value
+   //unsigned long maxSeconds = 300;
    unsigned long countDownSeconds = maxSeconds;
    unsigned long visualWarningSeconds = maxSeconds/4;
    unsigned long startTime = 0;
@@ -106,6 +138,7 @@ LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
    int powerCycleDelay = 5000; // wait for 5 seconds
    int loopCount = 0;
    int displayCount = 100;
+   String statusMsg = "";
 
 
 
@@ -113,35 +146,30 @@ LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 void setup() {
    Serial.begin(9600);
    lcd.begin(CHARS_PER_LINE, LCD_LINES);
-   lcd.print(titleLabel);
+   // Set PIN 13 to LOW (OUTPUT) to turn off the LED
+   pinMode(13, OUTPUT);
+   digitalWrite(13, LOW);
    pinMode(digitalPinPowerCtrl, OUTPUT);
    pinMode(REDLITE, OUTPUT);
    pinMode(GREENLITE, OUTPUT);
    pinMode(BLUELITE, OUTPUT);
    digitalWrite(digitalPinPowerCtrl, LOW); // default to low for on.
-   clearLine(1);
-   lcd.print((String)repeaterStatusLabel + "Checking...");
-   clearLine(2);
-   lcd.print((String)fwdPowerLabel);
-   clearLine(3);
-   lcd.print((String)revPowerLabel);
+   initDisplayLabels();
+   
 }
 
 void powerCycle(){
   setBacklight(255,0,0);
-  clearLine(1);
-  lcd.print((String)"Power: Set CTRL HIGH");
+  displayPowerCycle((String)PWRHIGHMSG );
   digitalWrite(digitalPinPowerCtrl,HIGH); // 
   Serial.println((String) "Power off at " + millis());
   Serial.flush();
   delay(powerCycleDelay);
-  clearLine(1);
-  lcd.print("Power: Set CTRL LOW ");
+  displayPowerCycle((String)PWRLOWMSG );
   digitalWrite(digitalPinPowerCtrl,LOW);
   Serial.println((String) "Power on at " + millis());
   delay(1000);
-  clearLine(1);
-  lcd.print((String)repeaterStatusLabel + "Checking...");
+  initDisplayLabels();
   inTransmit=0;  
   startTime=0;
 }
@@ -157,14 +185,10 @@ void loop() {
   Serial.flush();
   if(loopCount = displayCount){
   loopCount = 0;
-  clearLine(2,fwdPowerLabel.length());
-  //lcd.print((String)fwdReading);
-  lcd.print((String)toWatts(fwdReading));
+  // TESTING
+  displayPower((String)toWatts(fwdReading), (String)toWatts(revReading));
   
-  //lcd.print((String)"Last FWD Power: " + fwdReading );
-  clearLine(3,revPowerLabel.length());
-  lcd.print((String)revReading);
-  //lcd.print((String)"Last REV Power: " + revReading );
+  
 
   }
   if(fwdReading > voltageThreshold) {
@@ -175,8 +199,7 @@ void loop() {
       inTransmit++;
       setBacklight(0,50,255);  // BLUE in TX 
       startTime=millis();
-      clearLine(1,repeaterStatusLabel.length());
-      lcd.print((String)"Tx: " + maxSeconds);
+      displayStatus((String)"Tx " + maxSeconds);
     }else{        // check Timer
       countDownSeconds = maxSeconds - ((millis()-startTime)/1000);
       if(countDownSeconds < visualWarningSeconds ){
@@ -185,8 +208,11 @@ void loop() {
       if(countDownSeconds < 3 ){
         setBacklight(255,0,0);
       }
-      clearLine(1,repeaterStatusLabel.length());
-      lcd.print((String)"Tx: " + countDownSeconds);
+      // TESTING DISPLAY
+      displayStatus((String)"Tx " + countDownSeconds);
+      
+      //clearLine(1,repeaterStatusLabel.length());
+      //lcd.print((String)"Tx " + countDownSeconds);
       Serial.println((String) " Timer: " + countDownSeconds);
 
       if(countDownSeconds <= 0 ){
@@ -206,8 +232,9 @@ void resetTimer(){
    inTransmit=0;
    startTime = 0;
    setBacklight(0,255,0); // Not in TX. GREEN
-   clearLine(1,repeaterStatusLabel.length());
-   lcd.print((String)"Idle");
+   displayStatus((String)"Idle");
+   //clearLine(1,repeaterStatusLabel.length());
+   //lcd.print((String)"Idle");
    
    
 }
@@ -224,6 +251,15 @@ void clearLine(int lineIDX){
 void clearLine(int lineIDX, int charIDX){
   lcd.setCursor(charIDX,lineIDX);
   for(int offset=0;offset < CHARS_PER_LINE-charIDX;offset++){
+    lcd.print(" ");
+  }
+  lcd.setCursor(charIDX,lineIDX);
+}
+
+void clearLine(int lineIDX, int charIDX, int charLEN){
+  lcd.setCursor(charIDX,lineIDX);
+  int maxChar = (CHARS_PER_LINE-charIDX) < charLEN ? CHARS_PER_LINE-charIDX : charLEN;
+  for(int offset=0;offset < maxChar;offset++){
     lcd.print(" ");
   }
   lcd.setCursor(charIDX,lineIDX);
@@ -258,3 +294,72 @@ void setBacklight(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 
+#if LCD_LINES == 2 
+
+void initDisplayLabels() {
+  clearLine(0);
+   lcd.print((String)repeaterStatusLabel + "Wait...");
+   clearLine(1);
+   lcd.print((String)fwdPowerLabel);
+   clearLine(1,10);
+   lcd.print((String)revPowerLabel);
+}
+void displayPower(fVal, rVal) {
+  clearLine(1,fwdPowerLabel.length(), MAXFWDLEN);
+  lcd.print((String)fwd);
+  clearLine(1,fwdPowerLabel.length() + MAXFWDLEN + revPowerLabel.length(), MAXREVLEN);
+  lcd.print((String)rev);
+}
+void displayPowerCycle() {
+     clearLine(0);
+    lcd.print((String)msg);  
+  
+}
+void displayStatus(String statusMsg) {
+   clearLine(1,repeaterStatusLabel.length());
+   lcd.print((String)statusMsg);
+}
+  
+#elif LCD_LINES == 4
+
+void initDisplayLabels() {
+  // If 4 line display
+  clearLine(0);
+  lcd.print(titleLabel);
+   clearLine(1);
+   lcd.print((String)repeaterStatusLabel + "Checking...");
+   clearLine(2);
+   lcd.print((String)fwdPowerLabel);
+   clearLine(3);
+   lcd.print((String)revPowerLabel);
+}
+void displayPowerCycle(String msg) {
+    clearLine(1);
+    lcd.print((String)msg);  
+}
+void displayPower(String fwd, String rev) {
+  clearLine(2,fwdPowerLabel.length());
+  lcd.print((String)fwd);
+  clearLine(3,revPowerLabel.length());
+  lcd.print((String)rev);
+}
+
+void displayStatus( String statusMsg) {
+   clearLine(1,repeaterStatusLabel.length());
+   lcd.print((String)statusMsg);
+}
+      
+
+#else
+void initDisplayLabels() {
+}
+void diplayPowerCycle() {
+  
+}
+void displayPower() {
+  
+}
+void displayStatus((String)statusMsg){
+  // nothing;
+}
+#endif
