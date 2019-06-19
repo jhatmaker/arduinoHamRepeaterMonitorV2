@@ -96,6 +96,10 @@
 #if USE_NEOPIXEL
 Adafruit_NeoPixel strip (NEO_LED_COUNT, NEO_PIN, NEO_GRB + NEO_KHZ800);
 int onLEDCount = 0;  
+uint32_t color_red = strip.Color(255,0,0);
+uint32_t color_blue = strip.Color(0,0,153);
+uint32_t color_green = strip.Color(0,255,0);
+uint32_t color_yellow = strip.Color(255,255,0);
 #endif
 
 
