@@ -25,7 +25,7 @@
  * 13 (DB6 Databus) -> Arduino Digital 11
  * 14 (DB7 Databus) -> Arduino Digital 12
  * 15 (A PS for B/L+) -> 5v Arduino P3 (5v)
- * 16 (R PS for B/L RED) -> Arduino Digital 3
+ * 16 (R PS for B/L RED) -> Arduino Digital 4
  * 17 (G PS for B/L GREEN) -> Arduino Digital 5
  * 18 (B PS for B/L BLUE) -> Arduino Digital 6
  *  
@@ -56,8 +56,8 @@
  *  Digital 07 -> Display (RS) PIN 4
  *  Digital 06 -> Display (B) BLUE PIN 18
  *  Digital 05 -> Display (G) GREEN PIN 17
- *  Digital 04 -> X
- *  Digital 03 -> Display (R) RED PIN 16
+ *  Digital 04 -> Display (R) RED PIN 16
+ *  Digital 03 -> NEO_PIXEL
  *  Digital 02 -> to control relay +
  *  Digital 01 -> X
  *  Digital 00 -> X
@@ -76,9 +76,9 @@
 #define USE_LCD_DISPLAY 1
 #define CHARS_PER_LINE 20
 #define LCD_LINES 4
-#define REDLITE 3
+#define REDLITE 4
 #define GREENLITE 5
-#define BLUELITE 4
+#define BLUELITE 6
 
 
 #define FWDPOWER_IN A3
@@ -90,7 +90,7 @@
  * NeoPixel Support
  */
 #define USE_NEOPIXEL 1
-#define NEO_PIN 6
+#define NEO_PIN 3
 #define NEO_LED_COUNT 8
 
 #if USE_NEOPIXEL
