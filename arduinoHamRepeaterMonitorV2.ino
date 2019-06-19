@@ -66,18 +66,41 @@
 
 #include <LiquidCrystal.h>
 #include <Wire.h>
+#include <Adafruit_NeoPixel.h>
 
 
+/* 
+ * LCD Character display settings
+ * supports 16+2 or 20+4
+ */
+#define USE_LCD_DISPLAY 1
 #define CHARS_PER_LINE 20
 #define LCD_LINES 4
+#define REDLITE 3
+#define GREENLITE 5
+#define BLUELITE 4
 
 
 #define FWDPOWER_IN A3
 #define REVPOWER_IN A5
-#define REDLITE 3
-#define GREENLITE 5
-#define BLUELITE 6
+
 #define RELAYPIN_OUT 2
+
+/*
+ * NeoPixel Support
+ */
+#define USE_NEOPIXEL 1
+#define NEO_PIN 6
+#define NEO_LED_COUNT 8
+
+#if USE_NEOPIXEL
+Adafruit_NeoPixel strip (NEO_LED_COUNT, NEO_PIN, NEO_GRB + NEO_KHZ800);
+int onLEDCount = 0;  
+#endif
+
+
+
+
 
 #if LCD_LINES == 2 
 #define LABEL_LINE1 "Status: "
@@ -145,17 +168,28 @@ LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
    
 void setup() {
    Serial.begin(9600);
-   lcd.begin(CHARS_PER_LINE, LCD_LINES);
    // Set PIN 13 to LOW (OUTPUT) to turn off the LED
    pinMode(13, OUTPUT);
    digitalWrite(13, LOW);
+  
+   // Set up control line
    pinMode(digitalPinPowerCtrl, OUTPUT);
+   digitalWrite(digitalPinPowerCtrl, LOW); // default to low for on.
+  
+#if USE_LCD_DISPLAY   
+   // Set up LCD display
+   lcd.begin(CHARS_PER_LINE, LCD_LINES);
    pinMode(REDLITE, OUTPUT);
    pinMode(GREENLITE, OUTPUT);
    pinMode(BLUELITE, OUTPUT);
-   digitalWrite(digitalPinPowerCtrl, LOW); // default to low for on.
    initDisplayLabels();
-   
+#endif
+#if USE_NEOPIXEL
+  strip.begin();
+  strip.show();
+  onLEDCount=0;
+#endif
+  
 }
 
 void powerCycle(){
